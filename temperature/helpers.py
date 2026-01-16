@@ -12,8 +12,7 @@ async def get_city_temperature(city) -> float | None:
     api_key = os.environ.get("API_KEY")
 
     if not api_key:
-        print("Error: API_KEY not found in environment variables.")
-        return
+        raise ValueError("API_KEY not set")
 
     payload = {
         "key": api_key,

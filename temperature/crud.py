@@ -1,6 +1,5 @@
 import datetime
-from typing import Any
-
+import logging
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +7,10 @@ from city import crud as city_crud
 from temperature import helpers, models
 
 
-async def get_all_temperatures(db: AsyncSession) -> Any:
+logger = logging.getLogger(__name__)
+
+
+async def get_all_temperatures(db: AsyncSession) -> list[models.Temperature]:
     result = await db.execute(
         select(models.Temperature)
     )
@@ -16,7 +18,7 @@ async def get_all_temperatures(db: AsyncSession) -> Any:
     return temperatures
 
 
-async def get_temperatures_for_one_city(db: AsyncSession, city_id) -> Any:
+async def get_temperatures_for_one_city(db: AsyncSession, city_id: int) -> list[models.Temperature]:
     result = await db.execute(
         select(models.Temperature).where(models.Temperature.city_id == city_id)
     )
@@ -24,7 +26,7 @@ async def get_temperatures_for_one_city(db: AsyncSession, city_id) -> Any:
     return temperatures
 
 
-async def get_update_on_temp_in_all_cities(db: AsyncSession) -> Any:
+async def get_update_on_temp_in_all_cities(db: AsyncSession) -> list[models.Temperature]:
     cities = await city_crud.get_all_cities(db=db)
     for city in cities:
         temp = await helpers.get_city_temperature(city)
@@ -35,12 +37,12 @@ async def get_update_on_temp_in_all_cities(db: AsyncSession) -> Any:
                 date_time=datetime.datetime.now(),
             )
             db.add(db_temperature)
-            await db.commit()
-            await db.refresh(db_temperature)
+
         else:
-            raise HTTPException(
-                status_code=404, detail="Temperature not found"
-            )
+            logger.error(f"Temperature not found for city {city.name} (ID: {city.id})")
+            continue
+
+    await db.commit()
 
     temperatures = await get_all_temperatures(db)
     return temperatures

@@ -10,20 +10,18 @@ router = APIRouter()
 
 
 @router.get("/temperatures/", response_model=list[schemas.TemperatureRead])
-async def read_all_temperatures(db: Annotated[AsyncSession, Depends(get_db)]):
-    return await crud.get_all_temperatures(db=db)
-
-
-@router.get("/temperatures/{city_id}",
-            response_model=list[schemas.TemperatureRead])
-async def read_one_city_temperatures(
+async def read_temperatures(
         db: Annotated[AsyncSession, Depends(get_db)],
-        city_id: int | None = None):
-    temperatures = await crud.get_temperatures_for_one_city(
-        db=db, city_id=city_id
-    )
+        city_id: int | None = None
+):
+    if city_id:
+        temperatures = await crud.get_temperatures_for_one_city(db=db, city_id=city_id)
+    else:
+        temperatures = await crud.get_all_temperatures(db=db)
+
     if not temperatures:
         raise HTTPException(status_code=404, detail="Temperature not found")
+
     return temperatures
 
 
